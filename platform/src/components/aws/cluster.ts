@@ -184,25 +184,45 @@ export type ClusterVpcsNormalizedArgs = Required<
 interface ServiceRules {
   /**
    * The port and protocol the service listens on. Uses the format `{port}/{protocol}`.
+   *
+   * @example
+   * ```js
+   * {
+   *   listen: "80/http"
+   * }
+   * ```
    */
   listen: Input<Port>;
   /**
    * The port and protocol of the container the service forwards the traffic to. Uses the
    * format `{port}/{protocol}`.
+   *
+   * @example
+   * ```js
+   * {
+   *   forward: "80/http"
+   * }
+   * ```
    * @default The same port and protocol as `listen`.
    */
   forward?: Input<Port>;
   /**
-   * The name of the container to forward the traffic to.
+   * The name of the container to forward the traffic to. This maps to the `name` defined in the
+   * `container` prop.
    *
-   * You need this if there's more than one container.
-   *
-   * If there is only one container, the traffic is automatically forwarded to that
-   * container.
+   * You only need this if there's more than one container. If there's only one container, the
+   * traffic is automatically forwarded there.
    */
   container?: Input<string>;
   /**
    * The port and protocol to redirect the traffic to. Uses the format `{port}/{protocol}`.
+   *
+   * @example
+   * ```js
+   * {
+   *   redirect: "80/http"
+   * }
+   * ```
    */
   redirect?: Input<Port>;
   /**
@@ -210,21 +230,24 @@ interface ServiceRules {
    */
   path?: Input<string>;
   /**
-   * The conditions for the redirect. Only applicable to "http" protocols.
+   * The conditions for the redirect. Only applicable to `http` and `https` protocols.
    */
   conditions?: Input<{
     /**
      * Configure path-based routing. Only requests matching the path are forwarded to
      * the container.
      *
+     * ```js
+     * {
+     *   path: "/api/*"
+     * }
+     * ```
+     *
      * The path pattern is case-sensitive, supports wildcards, and can be up to 128
      * characters.
-     * - `*` matches 0 or more characters.
-     * - `?` matches exactly 1 character.
-     *
-     * For example:
-     * - `/api/*`
-     * - `/api/*.png
+     * - `*` matches 0 or more characters. For example, `/api/*` matches `/api/` or
+     *   `/api/orders`.
+     * - `?` matches exactly 1 character. For example, `/api/?.png` matches `/api/a.png`.
      *
      * @default Requests to all paths are forwarded.
      */
@@ -233,9 +256,15 @@ interface ServiceRules {
      * Configure query string based routing. Only requests matching one of the query
      * string conditions are forwarded to the container.
      *
+     * Takes a list of `key`, the name of the query string parameter, and `value` pairs.
+     * Where `value` is the value of the query string parameter. But it can be a pattern as well.
+     *
+     * If multiple `key` and `value` pairs are provided, it'll match requests with **any** of the
+     * query string parameters.
+     *
      * @example
      *
-     * Matching requests with query string `version=v1`.
+     * For example, to match requests with query string `version=v1`.
      *
      * ```js
      * {
@@ -245,7 +274,7 @@ interface ServiceRules {
      * }
      * ```
      *
-     * Matching requests with query string matching `env=test*`.
+     * Or match requests with query string matching `env=test*`.
      *
      * ```js
      * {
@@ -255,7 +284,7 @@ interface ServiceRules {
      * }
      * ```
      *
-     * Matching requests with query string `version=v1` or `env=test*`.
+     * Match requests with query string `version=v1` **or** `env=test*`.
      *
      * ```js
      * {
@@ -266,7 +295,7 @@ interface ServiceRules {
      * }
      * ```
      *
-     * Matching requests with any query string key with value `example`.
+     * Match requests with any query string key with value `example`.
      *
      * ```js
      * {
@@ -280,7 +309,16 @@ interface ServiceRules {
      */
     query?: Input<
       Input<{
+        /**
+         * The name of the query string parameter.
+         */
         key?: Input<string>;
+        /**
+         * The value of the query string parameter.
+         *
+         * If no `key` is provided, it'll match any request where a query string parameter with
+         * the given value exists.
+         */
         value: Input<string>;
       }>[]
     >;
@@ -334,25 +372,25 @@ interface TaskContainerArgs {
   image?: Input<
     | string
     | {
-        /**
-         * The path to the Docker build context. Same as the top-level
-         * [`image.context`](#image-context).
-         */
-        context?: Input<string>;
-        /**
-         * The path to the Dockerfile. Same as the top-level
-         * [`image.dockerfile`](#image-dockerfile).
-         */
-        dockerfile?: Input<string>;
-        /**
-         * Key-value pairs of build args. Same as the top-level [`image.args`](#image-args).
-         */
-        args?: Input<Record<string, Input<string>>>;
-        /**
-         * The stage to build up to. Same as the top-level [`image.target`](#image-target).
-         */
-        target?: Input<string>;
-      }
+      /**
+       * The path to the Docker build context. Same as the top-level
+       * [`image.context`](#image-context).
+       */
+      context?: Input<string>;
+      /**
+       * The path to the Dockerfile. Same as the top-level
+       * [`image.dockerfile`](#image-dockerfile).
+       */
+      dockerfile?: Input<string>;
+      /**
+       * Key-value pairs of build args. Same as the top-level [`image.args`](#image-args).
+       */
+      args?: Input<Record<string, Input<string>>>;
+      /**
+       * The stage to build up to. Same as the top-level [`image.target`](#image-target).
+       */
+      target?: Input<string>;
+    }
   >;
   /**
    * The command to override the default command in the container. Same as the top-level
@@ -582,66 +620,66 @@ interface ClusterBaseArgs {
   image?: Input<
     | string
     | {
-        /**
-         * The path to the [Docker build context](https://docs.docker.com/build/building/context/#local-context). The path is relative to your project's `sst.config.ts`.
-         * @default `"."`
-         * @example
-         *
-         * To change where the Docker build context is located.
-         *
-         * ```js
-         * {
-         *   context: "./app"
-         * }
-         * ```
-         */
-        context?: Input<string>;
-        /**
-         * The path to the [Dockerfile](https://docs.docker.com/reference/cli/docker/image/build/#file).
-         * The path is relative to the build `context`.
-         * @default `"Dockerfile"`
-         * @example
-         * To use a different Dockerfile.
-         * ```js
-         * {
-         *   dockerfile: "Dockerfile.prod"
-         * }
-         * ```
-         */
-        dockerfile?: Input<string>;
-        /**
-         * Key-value pairs of [build args](https://docs.docker.com/build/guide/build-args/) to pass to the Docker build command.
-         * @example
-         * ```js
-         * {
-         *   args: {
-         *     MY_VAR: "value"
-         *   }
-         * }
-         * ```
-         */
-        args?: Input<Record<string, Input<string>>>;
-        /**
-         * Tags to apply to the Docker image.
-         * @example
-         * ```js
-         * {
-         *   tags: ["v1.0.0", "commit-613c1b2"]
-         * }
-         * ```
-         */
-        tags?: Input<Input<string>[]>;
-        /**
-         * The stage to build up to in a [multi-stage Dockerfile](https://docs.docker.com/build/building/multi-stage/#stop-at-a-specific-build-stage).
-         * @example
-         * ```js
-         * {
-         *   target: "stage1"
-         * }
-         * ```
-         */
-        target?: Input<string>;
-      }
+      /**
+       * The path to the [Docker build context](https://docs.docker.com/build/building/context/#local-context). The path is relative to your project's `sst.config.ts`.
+       * @default `"."`
+       * @example
+       *
+       * To change where the Docker build context is located.
+       *
+       * ```js
+       * {
+       *   context: "./app"
+       * }
+       * ```
+       */
+      context?: Input<string>;
+      /**
+       * The path to the [Dockerfile](https://docs.docker.com/reference/cli/docker/image/build/#file).
+       * The path is relative to the build `context`.
+       * @default `"Dockerfile"`
+       * @example
+       * To use a different Dockerfile.
+       * ```js
+       * {
+       *   dockerfile: "Dockerfile.prod"
+       * }
+       * ```
+       */
+      dockerfile?: Input<string>;
+      /**
+       * Key-value pairs of [build args](https://docs.docker.com/build/guide/build-args/) to pass to the Docker build command.
+       * @example
+       * ```js
+       * {
+       *   args: {
+       *     MY_VAR: "value"
+       *   }
+       * }
+       * ```
+       */
+      args?: Input<Record<string, Input<string>>>;
+      /**
+       * Tags to apply to the Docker image.
+       * @example
+       * ```js
+       * {
+       *   tags: ["v1.0.0", "commit-613c1b2"]
+       * }
+       * ```
+       */
+      tags?: Input<Input<string>[]>;
+      /**
+       * The stage to build up to in a [multi-stage Dockerfile](https://docs.docker.com/build/building/multi-stage/#stop-at-a-specific-build-stage).
+       * @example
+       * ```js
+       * {
+       *   target: "stage1"
+       * }
+       * ```
+       */
+      target?: Input<string>;
+    }
   >;
   /**
    * The command to override the default command in the container.
@@ -762,15 +800,15 @@ interface ClusterBaseArgs {
     efs: Input<
       | Efs
       | {
-          /**
-           * The ID of the EFS file system.
-           */
-          fileSystem: Input<string>;
-          /**
-           * The ID of the EFS access point.
-           */
-          accessPoint: Input<string>;
-        }
+        /**
+         * The ID of the EFS file system.
+         */
+        fileSystem: Input<string>;
+        /**
+         * The ID of the EFS access point.
+         */
+        accessPoint: Input<string>;
+      }
     >;
     /**
      * The path to mount the volume.
@@ -883,34 +921,34 @@ export interface ClusterServiceArgs extends ClusterBaseArgs {
    * disable this and deploy your service in `sst dev`, pass in `false`.
    */
   dev?:
-    | false
-    | {
-        /**
-         * The `url` when this is running in dev mode.
-         *
-         * Since this component is not deployed in `sst dev`, there is no real URL. But if you are
-         * using this component's `url` or linking to this component's `url`, it can be useful to
-         * have a placeholder URL. It avoids having to handle it being `undefined`.
-         * @default `"http://url-unavailable-in-dev.mode"`
-         */
-        url?: Input<string>;
-        /**
-         * The command that `sst dev` runs to start this in dev mode. This is the command you run
-         * when you want to run your service locally.
-         */
-        command?: Input<string>;
-        /**
-         * Configure if you want to automatically start this when `sst dev` starts. You can still
-         * start it manually later.
-         * @default `true`
-         */
-        autostart?: Input<boolean>;
-        /**
-         * Change the directory from where the `command` is run.
-         * @default Uses the `image.dockerfile` path
-         */
-        directory?: Input<string>;
-      };
+  | false
+  | {
+    /**
+     * The `url` when this is running in dev mode.
+     *
+     * Since this component is not deployed in `sst dev`, there is no real URL. But if you are
+     * using this component's `url` or linking to this component's `url`, it can be useful to
+     * have a placeholder URL. It avoids having to handle it being `undefined`.
+     * @default `"http://url-unavailable-in-dev.mode"`
+     */
+    url?: Input<string>;
+    /**
+     * The command that `sst dev` runs to start this in dev mode. This is the command you run
+     * when you want to run your service locally.
+     */
+    command?: Input<string>;
+    /**
+     * Configure if you want to automatically start this when `sst dev` starts. You can still
+     * start it manually later.
+     * @default `true`
+     */
+    autostart?: Input<boolean>;
+    /**
+     * Change the directory from where the `command` is run.
+     * @default Uses the `image.dockerfile` path
+     */
+    directory?: Input<string>;
+  };
   /**
    * Configure a public endpoint for the service. When configured, a load balancer
    * will be created to route traffic to the containers. By default, the endpoint is an
@@ -969,119 +1007,119 @@ export interface ClusterServiceArgs extends ClusterBaseArgs {
     domain?: Input<
       | string
       | {
-          /**
-           * The custom domain you want to use.
-           *
-           * @example
-           * ```js
-           * {
-           *   domain: {
-           *     name: "example.com"
-           *   }
-           * }
-           * ```
-           *
-           * Can also include subdomains based on the current stage.
-           *
-           * ```js
-           * {
-           *   domain: {
-           *     name: `${$app.stage}.example.com`
-           *   }
-           * }
-           * ```
-           */
-          name: Input<string>;
-          /**
-           * Alias domains that should be used.
-           *
-           * @example
-           * ```js {4}
-           * {
-           *   domain: {
-           *     name: "app1.example.com",
-           *     aliases: ["app2.example.com"]
-           *   }
-           * }
-           * ```
-           */
-          aliases?: Input<string[]>;
-          /**
-           * The ARN of an ACM (AWS Certificate Manager) certificate that proves ownership of the
-           * domain. By default, a certificate is created and validated automatically.
-           *
-           * :::tip
-           * You need to pass in a `cert` for domains that are not hosted on supported `dns` providers.
-           * :::
-           *
-           * To manually set up a domain on an unsupported provider, you'll need to:
-           *
-           * 1. [Validate that you own the domain](https://docs.aws.amazon.com/acm/latest/userguide/domain-ownership-validation.html) by creating an ACM certificate. You can either validate it by setting a DNS record or by verifying an email sent to the domain owner.
-           * 2. Once validated, set the certificate ARN as the `cert` and set `dns` to `false`.
-           * 3. Add the DNS records in your provider to point to the load balancer endpoint.
-           *
-           * @example
-           * ```js
-           * {
-           *   domain: {
-           *     name: "example.com",
-           *     dns: false,
-           *     cert: "arn:aws:acm:us-east-1:112233445566:certificate/3a958790-8878-4cdc-a396-06d95064cf63"
-           *   }
-           * }
-           * ```
-           */
-          cert?: Input<string>;
-          /**
-           * The DNS provider to use for the domain. Defaults to the AWS.
-           *
-           * Takes an adapter that can create the DNS records on the provider. This can automate
-           * validating the domain and setting up the DNS routing.
-           *
-           * Supports Route 53, Cloudflare, and Vercel adapters. For other providers, you'll need
-           * to set `dns` to `false` and pass in a certificate validating ownership via `cert`.
-           *
-           * @default `sst.aws.dns`
-           *
-           * @example
-           *
-           * Specify the hosted zone ID for the Route 53 domain.
-           *
-           * ```js
-           * {
-           *   domain: {
-           *     name: "example.com",
-           *     dns: sst.aws.dns({
-           *       zone: "Z2FDTNDATAQYW2"
-           *     })
-           *   }
-           * }
-           * ```
-           *
-           * Use a domain hosted on Cloudflare, needs the Cloudflare provider.
-           *
-           * ```js
-           * {
-           *   domain: {
-           *     name: "example.com",
-           *     dns: sst.cloudflare.dns()
-           *   }
-           * }
-           * ```
-           *
-           * Use a domain hosted on Vercel, needs the Vercel provider.
-           *
-           * ```js
-           * {
-           *   domain: {
-           *     name: "example.com",
-           *     dns: sst.vercel.dns()
-           *   }
-           * }
-           * ```
-           */
-          dns?: Input<false | (Dns & {})>;
-        }
+        /**
+         * The custom domain you want to use.
+         *
+         * @example
+         * ```js
+         * {
+         *   domain: {
+         *     name: "example.com"
+         *   }
+         * }
+         * ```
+         *
+         * Can also include subdomains based on the current stage.
+         *
+         * ```js
+         * {
+         *   domain: {
+         *     name: `${$app.stage}.example.com`
+         *   }
+         * }
+         * ```
+         */
+        name: Input<string>;
+        /**
+         * Alias domains that should be used.
+         *
+         * @example
+         * ```js {4}
+         * {
+         *   domain: {
+         *     name: "app1.example.com",
+         *     aliases: ["app2.example.com"]
+         *   }
+         * }
+         * ```
+         */
+        aliases?: Input<string[]>;
+        /**
+         * The ARN of an ACM (AWS Certificate Manager) certificate that proves ownership of the
+         * domain. By default, a certificate is created and validated automatically.
+         *
+         * :::tip
+         * You need to pass in a `cert` for domains that are not hosted on supported `dns` providers.
+         * :::
+         *
+         * To manually set up a domain on an unsupported provider, you'll need to:
+         *
+         * 1. [Validate that you own the domain](https://docs.aws.amazon.com/acm/latest/userguide/domain-ownership-validation.html) by creating an ACM certificate. You can either validate it by setting a DNS record or by verifying an email sent to the domain owner.
+         * 2. Once validated, set the certificate ARN as the `cert` and set `dns` to `false`.
+         * 3. Add the DNS records in your provider to point to the load balancer endpoint.
+         *
+         * @example
+         * ```js
+         * {
+         *   domain: {
+         *     name: "example.com",
+         *     dns: false,
+         *     cert: "arn:aws:acm:us-east-1:112233445566:certificate/3a958790-8878-4cdc-a396-06d95064cf63"
+         *   }
+         * }
+         * ```
+         */
+        cert?: Input<string>;
+        /**
+         * The DNS provider to use for the domain. Defaults to the AWS.
+         *
+         * Takes an adapter that can create the DNS records on the provider. This can automate
+         * validating the domain and setting up the DNS routing.
+         *
+         * Supports Route 53, Cloudflare, and Vercel adapters. For other providers, you'll need
+         * to set `dns` to `false` and pass in a certificate validating ownership via `cert`.
+         *
+         * @default `sst.aws.dns`
+         *
+         * @example
+         *
+         * Specify the hosted zone ID for the Route 53 domain.
+         *
+         * ```js
+         * {
+         *   domain: {
+         *     name: "example.com",
+         *     dns: sst.aws.dns({
+         *       zone: "Z2FDTNDATAQYW2"
+         *     })
+         *   }
+         * }
+         * ```
+         *
+         * Use a domain hosted on Cloudflare, needs the Cloudflare provider.
+         *
+         * ```js
+         * {
+         *   domain: {
+         *     name: "example.com",
+         *     dns: sst.cloudflare.dns()
+         *   }
+         * }
+         * ```
+         *
+         * Use a domain hosted on Vercel, needs the Vercel provider.
+         *
+         * ```js
+         * {
+         *   domain: {
+         *     name: "example.com",
+         *     dns: sst.vercel.dns()
+         *   }
+         * }
+         * ```
+         */
+        dns?: Input<false | (Dns & {})>;
+      }
     >;
     /** @deprecated Use `rules` instead. */
     ports?: Input<Prettify<ServiceRules>[]>;
@@ -1215,129 +1253,129 @@ export interface ClusterServiceArgs extends ClusterBaseArgs {
     domain?: Input<
       | string
       | {
-          /**
-           * The custom domain you want to use.
-           *
-           * @example
-           * ```js
-           * {
-           *   domain: {
-           *     name: "example.com"
-           *   }
-           * }
-           * ```
-           *
-           * Can also include subdomains based on the current stage.
-           *
-           * ```js
-           * {
-           *   domain: {
-           *     name: `${$app.stage}.example.com`
-           *   }
-           * }
-           * ```
-           *
-           * Wildcard domains are supported.
-           *
-           * ```js
-           * {
-           *   domain: {
-           *     name: "*.example.com"
-           *   }
-           * }
-           * ```
-           */
-          name: Input<string>;
-          /**
-           * Alias domains that should be used.
-           *
-           * @example
-           * ```js {4}
-           * {
-           *   domain: {
-           *     name: "app1.example.com",
-           *     aliases: ["app2.example.com"]
-           *   }
-           * }
-           * ```
-           */
-          aliases?: Input<string[]>;
-          /**
-           * The ARN of an ACM (AWS Certificate Manager) certificate that proves ownership of the
-           * domain. By default, a certificate is created and validated automatically.
-           *
-           * :::tip
-           * You need to pass in a `cert` for domains that are not hosted on supported `dns` providers.
-           * :::
-           *
-           * To manually set up a domain on an unsupported provider, you'll need to:
-           *
-           * 1. [Validate that you own the domain](https://docs.aws.amazon.com/acm/latest/userguide/domain-ownership-validation.html) by creating an ACM certificate. You can either validate it by setting a DNS record or by verifying an email sent to the domain owner.
-           * 2. Once validated, set the certificate ARN as the `cert` and set `dns` to `false`.
-           * 3. Add the DNS records in your provider to point to the load balancer endpoint.
-           *
-           * @example
-           * ```js
-           * {
-           *   domain: {
-           *     name: "example.com",
-           *     dns: false,
-           *     cert: "arn:aws:acm:us-east-1:112233445566:certificate/3a958790-8878-4cdc-a396-06d95064cf63"
-           *   }
-           * }
-           * ```
-           */
-          cert?: Input<string>;
-          /**
-           * The DNS provider to use for the domain. Defaults to the AWS.
-           *
-           * Takes an adapter that can create the DNS records on the provider. This can automate
-           * validating the domain and setting up the DNS routing.
-           *
-           * Supports Route 53, Cloudflare, and Vercel adapters. For other providers, you'll need
-           * to set `dns` to `false` and pass in a certificate validating ownership via `cert`.
-           *
-           * @default `sst.aws.dns`
-           *
-           * @example
-           *
-           * Specify the hosted zone ID for the Route 53 domain.
-           *
-           * ```js
-           * {
-           *   domain: {
-           *     name: "example.com",
-           *     dns: sst.aws.dns({
-           *       zone: "Z2FDTNDATAQYW2"
-           *     })
-           *   }
-           * }
-           * ```
-           *
-           * Use a domain hosted on Cloudflare, needs the Cloudflare provider.
-           *
-           * ```js
-           * {
-           *   domain: {
-           *     name: "example.com",
-           *     dns: sst.cloudflare.dns()
-           *   }
-           * }
-           * ```
-           *
-           * Use a domain hosted on Vercel, needs the Vercel provider.
-           *
-           * ```js
-           * {
-           *   domain: {
-           *     name: "example.com",
-           *     dns: sst.vercel.dns()
-           *   }
-           * }
-           * ```
-           */
-          dns?: Input<false | (Dns & {})>;
-        }
+        /**
+         * The custom domain you want to use.
+         *
+         * @example
+         * ```js
+         * {
+         *   domain: {
+         *     name: "example.com"
+         *   }
+         * }
+         * ```
+         *
+         * Can also include subdomains based on the current stage.
+         *
+         * ```js
+         * {
+         *   domain: {
+         *     name: `${$app.stage}.example.com`
+         *   }
+         * }
+         * ```
+         *
+         * Wildcard domains are supported.
+         *
+         * ```js
+         * {
+         *   domain: {
+         *     name: "*.example.com"
+         *   }
+         * }
+         * ```
+         */
+        name: Input<string>;
+        /**
+         * Alias domains that should be used.
+         *
+         * @example
+         * ```js {4}
+         * {
+         *   domain: {
+         *     name: "app1.example.com",
+         *     aliases: ["app2.example.com"]
+         *   }
+         * }
+         * ```
+         */
+        aliases?: Input<string[]>;
+        /**
+         * The ARN of an ACM (AWS Certificate Manager) certificate that proves ownership of the
+         * domain. By default, a certificate is created and validated automatically.
+         *
+         * :::tip
+         * You need to pass in a `cert` for domains that are not hosted on supported `dns` providers.
+         * :::
+         *
+         * To manually set up a domain on an unsupported provider, you'll need to:
+         *
+         * 1. [Validate that you own the domain](https://docs.aws.amazon.com/acm/latest/userguide/domain-ownership-validation.html) by creating an ACM certificate. You can either validate it by setting a DNS record or by verifying an email sent to the domain owner.
+         * 2. Once validated, set the certificate ARN as the `cert` and set `dns` to `false`.
+         * 3. Add the DNS records in your provider to point to the load balancer endpoint.
+         *
+         * @example
+         * ```js
+         * {
+         *   domain: {
+         *     name: "example.com",
+         *     dns: false,
+         *     cert: "arn:aws:acm:us-east-1:112233445566:certificate/3a958790-8878-4cdc-a396-06d95064cf63"
+         *   }
+         * }
+         * ```
+         */
+        cert?: Input<string>;
+        /**
+         * The DNS provider to use for the domain. Defaults to the AWS.
+         *
+         * Takes an adapter that can create the DNS records on the provider. This can automate
+         * validating the domain and setting up the DNS routing.
+         *
+         * Supports Route 53, Cloudflare, and Vercel adapters. For other providers, you'll need
+         * to set `dns` to `false` and pass in a certificate validating ownership via `cert`.
+         *
+         * @default `sst.aws.dns`
+         *
+         * @example
+         *
+         * Specify the hosted zone ID for the Route 53 domain.
+         *
+         * ```js
+         * {
+         *   domain: {
+         *     name: "example.com",
+         *     dns: sst.aws.dns({
+         *       zone: "Z2FDTNDATAQYW2"
+         *     })
+         *   }
+         * }
+         * ```
+         *
+         * Use a domain hosted on Cloudflare, needs the Cloudflare provider.
+         *
+         * ```js
+         * {
+         *   domain: {
+         *     name: "example.com",
+         *     dns: sst.cloudflare.dns()
+         *   }
+         * }
+         * ```
+         *
+         * Use a domain hosted on Vercel, needs the Vercel provider.
+         *
+         * ```js
+         * {
+         *   domain: {
+         *     name: "example.com",
+         *     dns: sst.vercel.dns()
+         *   }
+         * }
+         * ```
+         */
+        dns?: Input<false | (Dns & {})>;
+      }
     >;
     /** @deprecated Use `rules` instead. */
     ports?: Input<Prettify<ServiceRules>[]>;
@@ -1670,49 +1708,147 @@ export interface ClusterServiceArgs extends ClusterBaseArgs {
     requestCount?: Input<false | number>;
   }>;
   /**
-   * Configure the service to use Fargate Spot capacity provider.
+   * Configure the capacity provider; regular Fargate or Fargate Spot, for this service.
    *
-   * Fargate Spot allows you to run containers on spare AWS compute capacity at a discounted
-   * rate compared to regular Fargate pricing. AWS may reclaim this capacity with a two-minute
-   * warning when needed.
-   *
-   * :::caution
-   * Setting or unsetting the `capacity` property requires recreating the ECS service,
-   * which can cause temporary downtime.
+   * :::tip
+   * Fargate Spot is a good option for dev or PR environments.
    * :::
    *
-   * @default Regular Fargate (no spot instances)
-   * @example
+   * Fargate Spot allows you to run containers on spare AWS capacity at around 50% discount
+   * compared to regular Fargate. [Learn more about Fargate
+   * pricing](https://aws.amazon.com/fargate/pricing/).
    *
-   * Use only Fargate Spot.
+   * :::note
+   * AWS might shut down Fargate Spot instances to reclaim capacity.
+   * :::
+   *
+   * There are a couple of caveats:
+   *
+   * 1. AWS may reclaim this capacity and **turn off your service** after a two-minute warning.
+   *    This is rare, but it can happen.
+   * 2. If there's no spare capacity, you'll **get an error**.
+   *
+   * This makes Fargate Spot a good option for dev or PR environments. You can set this using.
+   *
    * ```js
    * {
    *   capacity: "spot"
    * }
    * ```
    *
-   * Use 50% Fargate and 50% Fargate Spot. And ensure that the first 2 tasks use Fargate.
+   * You can also configure the % of regular vs spot capacity you want through the `weight` prop.
+   * And optionally set the `base` or first X number of tasks that'll be started using a given
+   * capacity.
+   *
+   * For example, the `base: 1` says that the first task uses regular Fargate, and from that
+   * point on there will be an even split between the capacity providers.
+   *
    * ```js
    * {
    *   capacity: {
-   *     fargate: { weight: 1, base: 2 },
+   *     fargate: { weight: 1, base: 1 },
    *     spot: { weight: 1 }
    *   }
    * }
    * ```
+   *
+   * The `base` works in tandem with the `scaling` prop. So setting `base` to X doesn't mean
+   * it'll start those tasks right away. It means that as your service scales up, according to
+   * the `scaling` prop, it'll ensure that the first X tasks will be with the given capacity.
+   *
+   * :::caution
+   * Changing `capacity` requires taking down and recreating the ECS service.
+   * :::
+   *
+   * And this is why you can only set the `base` for only one capacity provider. So you
+   * are not allowed to do the following.
+   *
+   * ```js
+   * {
+   *   capacity: {
+   *     fargate: { weight: 1, base: 1 },
+   *     // This will give you an error
+   *     spot: { weight: 1, base: 1 }
+   *   }
+   * }
+   * ```
+   *
+   * When you change the `capacity`, the ECS service is terminated and recreated. This will
+   * cause some temporary downtime.
+   *
+   * @default Regular Fargate
+   *
+   * @example
+   *
+   * Here are some examples settings.
+   *
+   * - Use only Fargate Spot.
+   *
+   *   ```js
+   *   {
+   *     capacity: "spot"
+   *   }
+   *   ```
+   * - Use 50% regular Fargate and 50% Fargate Spot.
+   *
+   *   ```js
+   *   {
+   *     capacity: {
+   *       fargate: { weight: 1 },
+   *       spot: { weight: 1 }
+   *     }
+   *   }
+   *   ```
+   * - Use 50% regular Fargate and 50% Fargate Spot. And ensure that the first 2 tasks use
+   *   regular Fargate.
+   *
+   *   ```js
+   *   {
+   *     capacity: {
+   *       fargate: { weight: 1, base: 2 },
+   *       spot: { weight: 1 }
+   *     }
+   *   }
+   *   ```
    */
   capacity?: Input<
     | "spot"
     | {
-        fargate?: Input<{
-          base?: Input<number>;
-          weight: Input<number>;
-        }>;
-        spot?: Input<{
-          base?: Input<number>;
-          weight: Input<number>;
-        }>;
-      }
+      /**
+       * Configure how the regular Fargate capacity is allocated.
+       */
+      fargate?: Input<{
+        /**
+         * Start the first `base` number of tasks with the given capacity.
+         *
+         * :::caution
+         * You can only specify `base` for one capacity provider.
+         * :::
+         */
+        base?: Input<number>;
+        /**
+         * Ensure the given ratio of tasks are started for this capacity.
+         */
+        weight: Input<number>;
+      }>;
+      /**
+       * Configure how the Fargate spot capacity is allocated.
+       */
+      spot?: Input<{
+        /**
+         * Start the first `base` number of tasks with the given capacity.
+         *
+         * :::caution
+         * You can only specify `base` for one capacity provider.
+         * :::
+         */
+        base?: Input<number>;
+        /**
+         * Ensure the given ratio of tasks are started for this capacity.
+         */
+        weight: Input<number>;
+      }>;
+    }
   >;
   /**
    * Configure the health check that ECS runs on your containers.
@@ -1972,18 +2108,18 @@ export interface ClusterTaskArgs extends ClusterBaseArgs {
    * [Live](/docs/live/) and [`sst dev`](/docs/reference/cli/#dev).
    */
   dev?:
-    | false
-    | {
-        /**
-         * The command that `sst dev` runs in dev mode.
-         */
-        command?: Input<string>;
-        /**
-         * Change the directory from where the `command` is run.
-         * @default Uses the `image.dockerfile` path
-         */
-        directory?: Input<string>;
-      };
+  | false
+  | {
+    /**
+     * The command that `sst dev` runs in dev mode.
+     */
+    command?: Input<string>;
+    /**
+     * Change the directory from where the `command` is run.
+     * @default Uses the `image.dockerfile` path
+     */
+    directory?: Input<string>;
+  };
   /**
    * [Transform](/docs/components#transform) how this component creates its underlying
    * resources.
@@ -2039,7 +2175,7 @@ export interface ClusterTaskArgs extends ClusterBaseArgs {
  * Add a service to your cluster.
  *
  * ```ts title="sst.config.ts"
- * cluster.addService("MyService");
+ * const service = cluster.addService("MyService");
  * ```
  *
  * #### Configure the container image
@@ -2064,7 +2200,7 @@ export interface ClusterTaskArgs extends ClusterBaseArgs {
  *     min: 4,
  *     max: 16,
  *     cpuUtilization: 50,
- *     memoryUtilization: 50,
+ *     memoryUtilization: 50
  *   }
  * });
  * ```
@@ -2077,8 +2213,8 @@ export interface ClusterTaskArgs extends ClusterBaseArgs {
  * ```ts title="sst.config.ts"
  * const service = cluster.addService("MyService", {
  *   serviceRegistry: {
- *     port: 80,
- *   },
+ *     port: 80
+ *   }
  * });
  *
  * const api = new sst.aws.ApiGatewayV2("MyApi", {
@@ -2099,7 +2235,7 @@ export interface ClusterTaskArgs extends ClusterBaseArgs {
  *     domain: "example.com",
  *     rules: [
  *       { listen: "80/http" },
- *       { listen: "443/https", forward: "80/http" },
+ *       { listen: "443/https", forward: "80/http" }
  *     ]
  *   }
  * });
@@ -2114,7 +2250,7 @@ export interface ClusterTaskArgs extends ClusterBaseArgs {
  * const bucket = new sst.aws.Bucket("MyBucket");
  *
  * cluster.addService("MyService", {
- *   link: [bucket],
+ *   link: [bucket]
  * });
  * ```
  *
@@ -2125,6 +2261,32 @@ export interface ClusterTaskArgs extends ClusterBaseArgs {
  *
  * console.log(Resource.MyBucket.name);
  * ```
+ *
+ * #### Service discovery
+ *
+ * This component automatically creates a Cloud Map service host name for the service. So
+ * anything in the same VPC can access it using the service's host name.
+ *
+ * For example, if you link the service to a Lambda function that's in the same VPC.
+ *
+ * ```ts title="sst.config.ts" {2,4}
+ * new sst.aws.Function("MyFunction", {
+ *   vpc,
+ *   url: true,
+ *   link: [service],
+ *   handler: "lambda.handler"
+ * });
+ * ```
+ *
+ * You can access the service by its host name using the [SDK](/docs/reference/sdk/).
+ *
+ * ```ts title="lambda.ts"
+ * import { Resource } from "sst";
+ *
+ * await fetch(`http://${Resource.MyService.service}`);
+ * ```
+ *
+ * [Check out an example](/docs/examples/#aws-cluster-service-discovery).
  *
  * ---
  *
@@ -2208,7 +2370,10 @@ export interface ClusterTaskArgs extends ClusterBaseArgs {
  * container also gets a public IPv4 address at $0.005 per hour.
  *
  * For a service, works out to $0.04048 x 0.25 x 24 x 30 + $0.004445 x 0.5 x 24 x 30 + $0.005
- * x 24 x 30 or **$13 per month**.
+ * x 24 x 30 or **$12 per month**.
+ *
+ * If you are using all Fargate Spot instances with `capacity: "spot"`, it's $0.01218784 x 0.25
+ * x 24 x 30 + $0.00133831 x 0.5 x 24 x 30 + $0.005 x 24 x 30 or **$6 per month**
  *
  * For a task, it works out to $0.04048 x 0.25 + $0.004445 x 0.5 + $0.005. Or **$0.02 per hour**
  * your task runs for.
@@ -2578,9 +2743,9 @@ export function normalizeContainers(
               efs:
                 volume.efs instanceof Efs
                   ? {
-                      fileSystem: volume.efs.id,
-                      accessPoint: volume.efs.accessPoint,
-                    }
+                    fileSystem: volume.efs.id,
+                    accessPoint: volume.efs.accessPoint,
+                  }
                   : volume.efs,
             })),
         );
@@ -2629,10 +2794,7 @@ export function createTaskRole(
     iam.getPolicyDocumentOutput({
       statements: [
         ...argsPermissions,
-        ...linkPermissions.map((item) => ({
-          actions: item.actions,
-          resources: item.resources,
-        })),
+        ...linkPermissions,
         ...(additionalPermissions ?? []),
         {
           actions: [
@@ -2643,7 +2805,14 @@ export function createTaskRole(
           ],
           resources: ["*"],
         },
-      ],
+      ].map((item) => ({
+        effect: (() => {
+          const effect = item.effect ?? "allow";
+          return effect.charAt(0).toUpperCase() + effect.slice(1);
+        })(),
+        actions: item.actions,
+        resources: item.resources,
+      })),
     }),
   );
 
